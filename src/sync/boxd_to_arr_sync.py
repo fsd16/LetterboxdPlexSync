@@ -1,14 +1,14 @@
 import logging
 from pathlib import Path
 
-from letterboxd_scrape import LetterBoxd
-from overseerr import Overseerr
-from dotenv import load_dotenv, find_dotenv
+from src.sync.lib.letterboxd import LetterBoxd
+from src.sync.lib.overseerr import Overseerr
+from dotenv import load_dotenv
 from getenv import Env
 
 LOG = logging.getLogger(__name__)
 
-env_path = Path(".env")
+env_path = Path("../../.env")
 
 load_dotenv(env_path)
 
