@@ -1,30 +1,16 @@
-from concurrent.futures import Future, ThreadPoolExecutor, wait
-from dataclasses import dataclass
-from getpass import getpass, getuser
-from http.cookiejar import CookieJar
 import io
-from json import dumps
+import json
 import logging
-from pathlib import Path
+import os
 import pickle
 import re
-import sys
-from typing import Any, Callable, Sequence, TypeVar
-import arrow
-from numpy import int64
-from pandas import DataFrame, concat, notna, read_csv, read_html
+from getpass import getpass
+from pathlib import Path
+
 import requests
-from requests.cookies import RequestsCookieJar
-import os
-import functools
-
-import bs4
 from en_pyurl import URL
-
-
-def dump(data: str):
-    with open("dump.txt", 'w') as f:
-        f.write(data)
+from pandas import read_csv
+from requests.cookies import RequestsCookieJar
 
 
 class LoginError(Exception):
@@ -33,7 +19,7 @@ class LoginError(Exception):
 
 class LetterBoxd:
     host: URL | str = "https://letterboxd.com"
-    username: str = "fdrabsch"
+    username: str = ""
     password: str = ""
     _cookie_path: Path | str = (
             Path(os.getenv("tmp", "/tmp")).resolve() / "letterboxd_cookies.pickle"
@@ -42,6 +28,8 @@ class LetterBoxd:
 
     def __init__(self) -> None:
         self.LOG = logging.getLogger(__name__)
+
+        assert all([self.username, self.password]), "Attributes 'username' and 'password' must be set before instantiating class"
 
         self.cookie_path = self._cookie_path
         self._host = URL(self.host)
@@ -161,6 +149,32 @@ class LetterBoxd:
         df = read_csv(io.StringIO(response.text))
         return df
 
+    def get_tmdbid(self, url):
+        cache_file = "boxdurltotmdb.cache"
+
+        # Load existing cache or create an empty one
+        if Path(cache_file).exists():
+            with open(cache_file, 'r') as fp:
+                cache = json.load(fp)
+        else:
+            cache = {}
+
+        if url in cache:
+            return cache[url]
+
+        response = self.session.get(url)
+
+        match = re.search(r'data-tmdb-id="(\d+)"', response.text)
+        if match:
+            tmdbid = match.group(1)
+            cache[url] = tmdbid
+
+            # Save updated cache
+            with open(cache_file, 'w') as fp:
+                json.dump(cache, fp, indent=4)
+
+            return tmdbid
+
     def __enter__(self):
         self.login()
         return self
@@ -171,19 +185,3 @@ class LetterBoxd:
 
     def __del__(self):
         self.cookie_path = self.session.cookies
-
-
-if __name__ == "__main__":
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(f"%(name)s - %(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    handler.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
-
-    LetterBoxd.username = "fdrabsch"
-    LetterBoxd.password = "38Canis12"
-
-    with LetterBoxd() as scrape:
-        print(scrape.get_watchlist())
