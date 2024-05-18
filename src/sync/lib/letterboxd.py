@@ -8,9 +8,9 @@ from getpass import getpass
 from pathlib import Path
 
 import requests
-from en_pyurl import URL
 from pandas import read_csv
 from requests.cookies import RequestsCookieJar
+from sync.lib.pyurl import URL
 
 LOG = logging.getLogger(__name__)
 
@@ -169,3 +169,7 @@ class LetterBoxd:
 
     def __del__(self):
         self.cached_cookies = self.session.cookies
+
+if __name__ == "__main__":
+    u = URL("https://www.reddit.com/r/radarr/comments/1ban3dc/introducing_swaparr_handling_stalled_torrents_in/")
+    print(u)
