@@ -1,6 +1,6 @@
 import logging
 import requests
-from en_pyurl import URL
+from sync.lib.pyurl import URL
 
 
 class Overseerr:
